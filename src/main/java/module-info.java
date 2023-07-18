@@ -3,6 +3,7 @@ module se.backede.budget {
     requires javafx.controls;
     requires javafx.fxml;
     requires lombok;
+    requires org.apache.commons.lang3;
     
     requires org.slf4j;
     

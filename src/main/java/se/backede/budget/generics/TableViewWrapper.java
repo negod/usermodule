@@ -5,16 +5,19 @@
 package se.backede.budget.generics;
 
 import java.lang.reflect.Field;
-import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.EventHandler;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableColumn.CellEditEvent;
 import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
+import javafx.scene.control.cell.TextFieldTableCell;
 import javafx.scene.input.KeyEvent;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import se.backede.generics.persistence.entity.GenericEntity;
 
 /**
@@ -27,13 +30,16 @@ public class TableViewWrapper<T extends GenericEntity> {
 
     private final Class<T> entityClass;
     private final JfxDao<T> dao;
+    TableView<T> tableView;
 
-    public TableViewWrapper(JfxDao<T> dao) {
+    public TableViewWrapper(TableView<T> tableView, JfxDao<T> dao) {
         this.entityClass = dao.getEntityClass();
         this.dao = dao;
+        this.tableView = tableView;
+        initializeTable();
     }
 
-    public void initializeTable(Set<T> initData, TableView<T> tableView) {
+    private void initializeTable() {
 
         for (Field field : entityClass.getDeclaredFields()) {
             field.setAccessible(true);
@@ -43,9 +49,7 @@ public class TableViewWrapper<T extends GenericEntity> {
                     Class<?> fieldClazz = Class.forName(field.getGenericType().getTypeName());
 
                     if (fieldClazz.equals(String.class)) {
-                        TableColumn<T, String> newColumn = new TableColumn<>(field.getName());
-                        newColumn.setCellValueFactory(new PropertyValueFactory<>(field.getName()));
-                        tableView.getColumns().add(newColumn);
+                        tableView.getColumns().add(createStringColumn(field));
                     }
 
                 } catch (ClassNotFoundException ex) {
@@ -55,12 +59,44 @@ public class TableViewWrapper<T extends GenericEntity> {
             }
         }
 
-        ObservableList<T> tableData = FXCollections.observableArrayList(initData);
-        tableView.setItems(tableData);
+        dao.getAll().ifPresent(data -> {
+            ObservableList<T> tableData = FXCollections.observableArrayList(data);
+            tableView.setItems(tableData);
+        });
 
     }
 
-    public void initializeDeleteListener(TableView<T> tableView) {
+    private TableColumn<T, String> createStringColumn(Field field) {
+        TableColumn<T, String> newColumn = new TableColumn<>(StringUtils.capitalize(field.getName()));
+        newColumn.setCellFactory(TextFieldTableCell.forTableColumn());
+        newColumn.setCellValueFactory(new PropertyValueFactory<>(field.getName()));
+
+        newColumn.setOnEditCommit(new EventHandler<CellEditEvent<T, String>>() {
+            @Override
+            public void handle(CellEditEvent<T, String> t) {
+
+                T entity = (T) t.getTableView().getItems().get(t.getTablePosition().getRow());
+
+                try {
+                    t.getTableColumn().getText();
+                    String capitalize = StringUtils.capitalize(t.getTableColumn().getText());
+                    String methodCall = "set".concat(capitalize);
+                    Method declaredMethod = entity.getClass().getDeclaredMethod(methodCall, String.class);
+
+                    declaredMethod.invoke(entity, t.getNewValue());
+
+                    dao.updateEntity(entity);
+
+                } catch (NoSuchMethodException | SecurityException | IllegalAccessException | IllegalArgumentException | InvocationTargetException ex) {
+                    log.error("Error when initializing TableView Error {}", ex);
+                }
+            }
+        });
+        return newColumn;
+    }
+
+    public void initializeDeleteListener() {
+
         tableView.addEventFilter(KeyEvent.KEY_PRESSED, (KeyEvent keyEvent) -> {
 
             switch (keyEvent.getCode()) {
@@ -69,6 +105,25 @@ public class TableViewWrapper<T extends GenericEntity> {
 
                     if (dao.getInstance(entityClass).deleteEntity(selectedItem).isPresent()) {
                         tableView.getItems().remove(selectedItem);
+                    }
+
+                    break;
+                default:
+            }
+
+        });
+    }
+
+    public void initializeUpdateOnEnterListener() {
+        tableView.setEditable(true);
+
+        tableView.addEventFilter(KeyEvent.KEY_PRESSED, (KeyEvent keyEvent) -> {
+
+            switch (keyEvent.getCode()) {
+                case ENTER:
+                    T selectedItem = tableView.getSelectionModel().getSelectedItem();
+
+                    if (dao.getInstance(entityClass).updateEntity(selectedItem).isPresent()) {
                     }
 
                     break;

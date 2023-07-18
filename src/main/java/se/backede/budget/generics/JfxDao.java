@@ -47,4 +47,8 @@ public class JfxDao<T extends GenericEntity> extends GenericDao<T> {
         return executeTransactionBoolean(() -> delete(entity.getId()));
     }
 
+    public Optional<T> updateEntity(T entity) {
+        return executeTransaction(() -> update(entity));
+    }
+
 }

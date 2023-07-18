@@ -21,7 +21,8 @@ public class App extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         CacheInitializer cacheInitializer = new CacheInitializer();
-        scene = new Scene(loadFXML("login/login"), 330, 150);
+        //scene = new Scene(loadFXML("login/login"), 330, 150);
+        scene = new Scene(loadFXML("user/user"), 600, 350);
         stage.setScene(scene);
         stage.show();
     }

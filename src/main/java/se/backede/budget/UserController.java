@@ -4,9 +4,6 @@
  */
 package se.backede.budget;
 
-import java.io.IOException;
-import java.util.Optional;
-import java.util.Set;
 import javafx.fxml.FXML;
 import javafx.scene.control.TableView;
 import se.backede.budget.generics.TableViewWrapper;
@@ -25,17 +22,10 @@ public class UserController {
     TableViewWrapper<UserEntity> tableView;
 
     @FXML
-    private void initialize() throws IOException {
+    private void initialize() {
 
-        tableView = new TableViewWrapper<>(UserDao.getInstance(UserEntity.class));
-
-        Optional entitites = UserDao.getInstance(UserEntity.class).getAll();
-
-        entitites.ifPresent(data
-                -> tableView.initializeTable((Set<UserEntity>) data, userTable)
-        );
-
-        tableView.initializeDeleteListener(userTable);
+        tableView = new TableViewWrapper<>(userTable, UserDao.getInstance(UserEntity.class));
+        tableView.initializeDeleteListener();
 
     }
 
