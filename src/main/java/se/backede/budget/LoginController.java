@@ -37,7 +37,7 @@ public class LoginController {
         entity.setName(username.getText());
         entity.setPassword(password.getText());
 
-        Optional<UserEntity> persistUser = UserDao.getInstance().persistUser(entity);
+        Optional<UserEntity> persistUser = UserDao.getInstance(UserEntity.class).persistEntity(entity);
 
         App.setRoot("user/user");
 

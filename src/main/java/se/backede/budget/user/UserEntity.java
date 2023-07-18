@@ -9,6 +9,7 @@ import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
+import se.backede.budget.generics.ShowFieldInTableView;
 import se.backede.generics.persistence.entity.GenericEntity;
 
 /**
@@ -22,7 +23,9 @@ import se.backede.generics.persistence.entity.GenericEntity;
 @ToString
 public class UserEntity extends GenericEntity {
 
+    @ShowFieldInTableView
     private String name;
+    @ShowFieldInTableView
     private String password;
 
 }
